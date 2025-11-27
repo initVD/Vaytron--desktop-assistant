@@ -1,3 +1,10 @@
-import playsound as ps
+from playsound import playsound
+import eel
+
+
+#playing assistannt sound function
+@eel.expose
 def playAssistantSound():
-    ps.playsound('engine/assets/audio/bootup.mp3')
+    music_dir = "www\\assets\\audio\\bootup.mp3"
+    playsound(music_dir)
+    
