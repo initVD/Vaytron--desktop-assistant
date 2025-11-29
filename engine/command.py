@@ -36,7 +36,8 @@ def takecommand():
     except Exception as e:
         return ""
     
-    return query.lower()
+    
+    return query.lower()#convertimg to lower case
 
 
 
