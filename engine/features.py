@@ -73,4 +73,11 @@ def sendWhatsApp(query):
         "sister":"+919924083240"
     }
     for name, number in contact.items():
-        if name in query
+        if name in query:
+            msg = query.replace("send message to ", "").replace("saying","").strip()
+            speak(f"Sending WhatsApp message to {name}")
+            # This will open WhatsApp Web and send the message
+            pywhatkit.sendingwhatmsg_instantly(number,msg, wait_time=10)
+            return
+    speak("Contact not found in your contact list")
+    

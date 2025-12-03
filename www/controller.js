@@ -17,4 +17,11 @@ $(document).ready(function() {
         $("SiriWave").attr("hidden", true);
     }
 
+    // Optional: Handle text returned from Python if you want to log it
+    eel.expose(receiverText)
+    function receiverText(message) {
+        console.log("Vaytron said: " + message);
+        // You can add code here later to append this message to a chat history box
+    }
+
 });
