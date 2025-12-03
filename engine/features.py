@@ -11,13 +11,18 @@ from engine.command import speak
 
 # Gemini Setup
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash')
-chat_session = model.start_chat(history=[])
+system_instruction = "You are Vaytron, a smart and friendly desktop assistant. Detect the user's language automatically and reply in the same language. Give simple, clear, and concise answers (preferably within 1–2 sentences). Keep your tone helpful and easy to understand for all users"
 
+model = genai.GenerativeModel('gemini-2.0-flash')
+chat_session = model.start_chat(history=[
+    {"role": "user", "parts": [system_instruction]},
+    {"role": "model", "parts": ["Okay, I understand. I am Vaytron."]}
+])
+''''
 @eel.expose
 def playAssistantSound():
     music_dir = "www\\assets\\audio\\bootup.mp3"
-    playsound(music_dir)
+    playsound(music_dir)'''
 
 def openCommand(query):
     for name in ASSISTANT_NAME:
@@ -71,10 +76,17 @@ def sendWhatsApp(query):
 def chatWithBot(query):
     try:
         eel.DisplayMessage("Thinking...")
-        prompt = f"You are Vaytron, a desktop assistant. Answer this query simply and concisely: {query}"
-        response = chat_session.send_message(prompt)
+        
+        # 3. Send ONLY the new query (Gemini remembers the rest)
+        response = chat_session.send_message(query)
         answer = response.text.replace("*", "")
+        
+        eel.DisplayMessage("Speaking...")
         speak(answer)
+        
+        # 4. (Optional) Return True to signal the loop to continue
+        return True
     except Exception as e:
         print(f"Error: {e}")
         speak("I am having trouble connecting to the internet.")
+        return False

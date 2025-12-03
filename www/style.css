@@ -4,6 +4,25 @@ body{
     overflow-y: hidden;
     overflow-x: hidden;
 }
+/* Full Screen Video Overlay */
+.video-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: black;
+    z-index: 9999; /* Sits on top of everything */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Hide the main interface initially */
+#main-interface {
+    opacity: 0;
+    transition: opacity 1s ease-in;
+}
 
 .square{
     position: relative;
@@ -173,6 +192,3 @@ body{
     }
   }
   
-  
-  /* Input Filed End*/
-  /* Scrollbar Style */

@@ -1,6 +1,8 @@
 import speech_recognition as sr
 import eel
 import time
+import re
+
 from engine.voice import speak_realistic
 
 def speak(text):
@@ -11,18 +13,15 @@ def speak(text):
 def takecommand():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        print('listening....')
         eel.DisplayMessage("listening....")
-        r.pause_threshold = 0.5
+        r.pause_threshold = 0.5 
         r.adjust_for_ambient_noise(source)
         try:
-            audio = r.listen(source, 10, 5)
-            print('recognizing')
+            # Wait max 10 seconds for a phrase, else return empty
+            audio = r.listen(source, 10, 5) 
             eel.DisplayMessage("recognizing....")
             query = r.recognize_google(audio, language='en-in')
-            print(f"user said: {query}")
             eel.DisplayMessage(query)
-            
         except Exception as e:
             return ""
     return query.lower()
@@ -34,46 +33,59 @@ def chat(query):
 @eel.expose
 def allCommands():
     try:
-        # Start the continuous loop
+        # Initial greeting
+        # speak("I am listening, sir.") # Optional
+        
+        # MAX_SILENCE_COUNT determines how many times it listens to silence before sleeping
+        silence_count = 0
+        MAX_SILENCE = 2 
+
         while True:
-            # 1. Listen for input
             query = takecommand()
             
-            # 2. Handle Silence (If user didn't speak, keep listening)
             if query == "":
+                silence_count += 1
+                if silence_count > MAX_SILENCE:
+                    speak("Going to sleep now.")
+                    eel.ShowHood()
+                    break # Exit the loop
                 continue
+            
+            # Reset silence count if user spoke
+            silence_count = 0 
 
-            # 3. EXIT CONDITION: Check if user wants to stop
             if "stop" in query or "exit" in query or "quit" in query:
-                from engine.features import speak
-                speak("Going to sleep, sir.")
-                eel.ShowHood()  # This switches the UI back to the Circle/Hood
-                break # Breaks the loop
+                speak("Goodbye, sir.")
+                eel.ShowHood()
+                break
 
-            # 4. If not stopping, process the command(s)
             eel.DisplayMessage("Processing...")
             process_command(query)
             
-            # 5. Ready for next command
+            # Important: Small delay to ensure audio output doesn't trigger input
+            time.sleep(1) 
             eel.DisplayMessage("Listening again...")
 
     except Exception as e:
-        print(f"Error in main loop: {e}")
+        print(f"Error: {e}")
         eel.ShowHood()
 
 def process_command(query):
-    # Import inside function to prevent circular import error
     from engine.features import openCommand, setVolume, setBrightness, sendWhatsApp, chatWithBot
     
     query = query.lower()
+    commands = re.split(r'\s+(?:and|also|then)\s+', query)
     
-    if "open" in query:
-        openCommand(query)
-    elif "volume" in query:
-        setVolume(query)
-    elif "brightness" in query:
-        setBrightness(query)
-    elif "send message" in query or "whatsapp" in query:
-        sendWhatsApp(query)
-    else:
-        chatWithBot(query)
+    for command in commands:
+        if not command.strip(): continue
+
+        if "open" in command:
+            openCommand(command)
+        elif "volume" in command:
+            setVolume(command)
+        elif "brightness" in command:
+            setBrightness(command)
+        elif "send message" in command or "whatsapp" in command:
+            sendWhatsApp(command)
+        else:
+            chatWithBot(command)
