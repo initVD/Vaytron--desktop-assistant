@@ -72,3 +72,5 @@ def sendWhatsApp(query):
         "dad": "+919925826289",
         "sister":"+919924083240"
     }
+    for name, number in contact.items():
+        if name in query
