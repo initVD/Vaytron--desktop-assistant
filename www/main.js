@@ -44,6 +44,11 @@ $(document).ready(function() {
         $('#SiriWave').attr('hidden', false);
         eel.allCommands()() 
 
-    });
+    }); 
+    $("#chatbox").keypress(function(e){
+        if (e.which == 13){
+            sendTextCommand();
+        }
+    })
 
 });

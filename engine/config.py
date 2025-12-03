@@ -1,0 +1,1 @@
+ASSISTANT_NAME=["jarvis","Jarvis","JARVIS","Vaytron","vaytron","VAYTRON"]
