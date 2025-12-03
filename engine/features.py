@@ -5,8 +5,24 @@ import pyautogui
 import screen_brightness_control as sbc
 from AppOpener import open as appopen
 from playsound import playsound
-from engine.config import ASSISTANT_NAME
+from engine.config import ASSISTANT_NAME, GEMINI_API_KEY
 from command import speak
+import google.generativeai as genai
+
+# --- CONFIGURING GEMINI --- #
+# We authenticate with Google using the key from config.py
+genai.configure(api_key=GEMINI_API_KEY)
+
+# We define the model (Gemini-1.5-flash is fast and good for chat)
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+# This is the memory of the conversation
+chat_session = model.start_chat(history=[])
+
+@eel.expose
+def playAssistantSound():
+    music_dir = "www\\assets\\audio\\bootup.mp3"
+    playsound(music_dir)
 
 
 # --- SYSTEM CONTROLS --- #
@@ -34,15 +50,6 @@ def setBrightness(command):
         sbc.set_brightness(max(current[0]-10,0))
         speak("Brightness decreased")
 
-
-
-    
-
-#playing assistannt sound function
-@eel.expose
-def playAssistantSound():
-    music_dir = "www\\assets\\audio\\bootup.mp3"
-    playsound(music_dir)
     
 def openCommand(query):
     # Clean the query (remove "open", "jarvis", etc.)
@@ -62,14 +69,32 @@ def openCommand(query):
         speak("Please specify what to open")
 
 def chatWithBot(query):
-    speak("I heard you say: " + query)
+    try:
+        #giving prompt to model
+        prompt:f"You are Vaytron, a smart and friendly desktop assistant. Detect the user's language automatically and reply in the same language. Give simple, clear, and concise answers (preferably within 1–2 sentences). Keep your tone helpful and easy to understand for all users.: {query}"
+
+        #sending message to gemini
+        response = chat_session.send_message(prompt)
+
+        # 3. Get the text answer
+        answer = response.text
+
+        # 4. Clean up the answer
+            # (Remove * asterisks which AI uses for bolding, but TTS reads annoyingly)'
+        answer = answer.replace("*", "")
+        
+        speak(answer)
+    except Exception as e:
+        print(f"Error: {e}")
+        speak("I had trouble connecting to my brain. Please check your internet.")
+
 
 def sendWhatsApp(query):
     import pywhatkit
 
     contact = {
         "mom": "+919725338658",
-        "dad": "+919925826289",
+        "dad": "+919925826289", 
         "sister":"+919924083240"
     }
     for name, number in contact.items():
@@ -80,4 +105,3 @@ def sendWhatsApp(query):
             pywhatkit.sendingwhatmsg_instantly(number,msg, wait_time=10)
             return
     speak("Contact not found in your contact list")
-    
