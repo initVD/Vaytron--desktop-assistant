@@ -4,41 +4,33 @@ import eel
 import pyautogui
 import screen_brightness_control as sbc
 from AppOpener import open as appopen
-from playsound import playsound
+import pywhatkit
 import google.generativeai as genai
 from engine.config import ASSISTANT_NAME, GEMINI_API_KEY
-from engine.command import speak
 
-# Gemini Setup
+# Gemini Configuration
 genai.configure(api_key=GEMINI_API_KEY)
-system_instruction = "You are Vaytron, a smart and friendly desktop assistant. Detect the user's language automatically and reply in the same language. Give simple, clear, and concise answers (preferably within 1–2 sentences). Keep your tone helpful and easy to understand for all users"
-
 model = genai.GenerativeModel('gemini-2.0-flash')
+
+# Persistent Chat Memory
+system_instruction = "You are Vaytron, a desktop assistant. Answer properly, short and concisely."
 chat_session = model.start_chat(history=[
     {"role": "user", "parts": [system_instruction]},
-    {"role": "model", "parts": ["Okay, I understand. I am Vaytron."]}
+    {"role": "model", "parts": ["Okay, I am Vaytron."]}
 ])
-''''
-@eel.expose
-def playAssistantSound():
-    music_dir = "www\\assets\\audio\\bootup.mp3"
-    playsound(music_dir)'''
 
 def openCommand(query):
-    for name in ASSISTANT_NAME:
-        query = query.replace(name, "")
-    query = query.replace("open", "").replace("launch", "").strip().lower()
-
+    query = query.replace(ASSISTANT_NAME, "").replace("open", "").replace("launch", "").strip().lower()
     if query != "":
+        from engine.command import speak 
         speak("Opening " + query)
         try:
             appopen(query, match_closest=True, throw_error=True)
         except:
             os.system('start ' + query)
-    else:
-        speak("Please specify what to open")
 
 def setVolume(command):
+    from engine.command import speak
     if "up" in command or "increase" in command:
         pyautogui.press("volumeup")
         speak("Volume increased")
@@ -50,6 +42,7 @@ def setVolume(command):
         speak("System muted")
 
 def setBrightness(command):
+    from engine.command import speak
     current = sbc.get_brightness()
     if not current: current = [50]
     
@@ -61,32 +54,28 @@ def setBrightness(command):
         speak("Brightness decreased")
 
 def sendWhatsApp(query):
-    import pywhatkit
-    # Add your contacts here
-    contacts = {"mom": "+919725338658", "dad": "+919925826289"}
+    from engine.command import speak
+    # TODO: Update these numbers with real contacts
+    contacts = {"mom": "+910000000000", "dad": "+910000000000"} 
     
     for name, number in contacts.items():
         if name in query:
             msg = query.replace("send message to", "").replace(name, "").replace("saying", "").strip()
             speak(f"Sending message to {name}")
+            # Sends message instantly
             pywhatkit.sendwhatmsg_instantly(number, msg, wait_time=10)
             return
     speak("I couldn't find that contact.")
 
 def chatWithBot(query):
+    from engine.command import speak
     try:
         eel.DisplayMessage("Thinking...")
-        
-        # 3. Send ONLY the new query (Gemini remembers the rest)
         response = chat_session.send_message(query)
         answer = response.text.replace("*", "")
         
         eel.DisplayMessage("Speaking...")
         speak(answer)
-        
-        # 4. (Optional) Return True to signal the loop to continue
-        return True
     except Exception as e:
         print(f"Error: {e}")
         speak("I am having trouble connecting to the internet.")
-        return False
