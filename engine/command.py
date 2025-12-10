@@ -71,7 +71,7 @@ def process_command(query):
     
     for command in commands:
         if not command.strip(): continue
-        # Ignore stop words if they appear in middle of sentence
+        # Ignoring stop words if they appear in middle of sentence
         if command in ["stop", "exit", "quit"]: continue
 
         if "open" in command:
