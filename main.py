@@ -10,4 +10,4 @@ def start():
     eel.start('index.html', mode=None, host='localhost', port=8000, block=True)
 
 if __name__ == "__main__":
-    start()
+    start() 

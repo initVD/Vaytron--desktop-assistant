@@ -12,15 +12,30 @@ from engine.config import ASSISTANT_NAME, GEMINI_API_KEY
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash')
 
-# Persistent Chat Memory
-system_instruction = "You are Vaytron, a desktop assistant. Answer properly, short and concisely."
+# Initialize Chat with System Instruction
+system_instruction = (
+    "You are Vaytron, a desktop assistant. "
+    "Answer properly, short, and concisely. "
+    "ALWAYS detect the language of the user's input and respond strictly in that same language. "
+    "If the user speaks Hindi, answer in Hindi. If English, answer in English."
+)
+
 chat_session = model.start_chat(history=[
     {"role": "user", "parts": [system_instruction]},
-    {"role": "model", "parts": ["Okay, I am Vaytron."]}
+    {"role": "model", "parts": ["Okay, I am Vaytron. I will answer in the language ,you speaks."]}
 ])
-
 def openCommand(query):
-    query = query.replace(ASSISTANT_NAME, "").replace("open", "").replace("launch", "").strip().lower()
+    # Fix: Handle both List and String for Assistant Name
+    query = query.lower()
+    
+    if isinstance(ASSISTANT_NAME, list):
+        for name in ASSISTANT_NAME:
+            query = query.replace(name.lower(), "")
+    else:
+        query = query.replace(ASSISTANT_NAME.lower(), "")
+
+    query = query.replace("open", "").replace("launch", "").strip()
+    
     if query != "":
         from engine.command import speak 
         speak("Opening " + query)
@@ -55,14 +70,13 @@ def setBrightness(command):
 
 def sendWhatsApp(query):
     from engine.command import speak
-    # TODO: Update these numbers with real contacts
+    # Update these numbers with real contacts
     contacts = {"mom": "+910000000000", "dad": "+910000000000"} 
     
     for name, number in contacts.items():
         if name in query:
             msg = query.replace("send message to", "").replace(name, "").replace("saying", "").strip()
             speak(f"Sending message to {name}")
-            # Sends message instantly
             pywhatkit.sendwhatmsg_instantly(number, msg, wait_time=10)
             return
     speak("I couldn't find that contact.")
@@ -71,6 +85,8 @@ def chatWithBot(query):
     from engine.command import speak
     try:
         eel.DisplayMessage("Thinking...")
+        
+        # The AI will now generate the answer in the correct language
         response = chat_session.send_message(query)
         answer = response.text.replace("*", "")
         

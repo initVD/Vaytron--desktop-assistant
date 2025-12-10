@@ -1,14 +1,16 @@
-body{
+body {
     background-color: black;
-    overflow: hidden;
+    overflow: hidden; /* Prevents scrolling */
     color: white;
+    height: 100vh; /* Force body to fit screen */
+    margin: 0;
 }
 
 /* Video Overlay */
 .video-overlay {
     position: fixed;
     top: 0; left: 0;
-    width: 100%; height: 100vh;
+    width: 100%; height: 100%;
     background-color: black;
     z-index: 9999;
     display: flex; justify-content: center; align-items: center;
@@ -17,26 +19,31 @@ body{
 #main-interface {
     opacity: 0;
     transition: opacity 1s ease-in;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Vertically centers everything */
 }
 
-/* Hood Animation */
-.square{
-    position: relative; width: 400px; height: 400px;
+/* Hood Animation - RESIZED */
+.square {
+    position: relative;
+    width: 250px; height: 250px; /* Reduced to 250px to fit laptop screens */
     display: flex; justify-content: center; align-items: center;
 }
-.square span:nth-child(1){
+.square span:nth-child(1) {
     position: absolute; width: 100%; height: 100%;
     border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
     transition: 0.5s; animation: animate1 6s linear infinite;
     box-shadow: 0 0 50px rgb(242, 255, 2), inset 0 0 50px rgb(25, 0, 255);
 }
-.square span:nth-child(2){
+.square span:nth-child(2) {
     position: absolute; width: 100%; height: 100%;
     border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
     transition: 0.5s; animation: animate2 4s linear infinite;
     box-shadow: 0 0 50px rgb(255, 0, 238), inset 0 0 50px rgb(25, 0, 255);
 }
-.square span:nth-child(3){
+.square span:nth-child(3) {
     position: absolute; width: 100%; height: 100%;
     border-radius: 38% 62% 63% 37% / 41% 44% 56% 59%;
     transition: 0.5s; animation: animate3 8s linear infinite;
@@ -47,16 +54,34 @@ body{
 @keyframes animate2 { 0%{ transform: rotate(0deg); } 100%{ transform: rotate(360deg); } }
 @keyframes animate3 { 0%{ transform: rotate(0deg); } 100%{ transform: rotate(360deg); } }
 
-/* Input Field */
+/* Input Field Area */
 #TextInput {
-    background-color: #181818a8; border-radius: 8px;
+    background-color: #181818a8; 
+    border-radius: 8px;
     box-shadow: 0 0 20px rgb(25, 0, 255);
-    padding: 3px 0px 3px 20px; margin: 0px 20%;
+    padding: 5px 10px; 
+    margin: 0 auto; /* Centered */
+    width: 60%; /* Not too wide */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
+
 .input-field {
-    background-color: transparent; border: none; width: 95%; outline: none; color: white;
+    background-color: transparent; border: none; flex-grow: 1; outline: none; color: white;
 }
+
 .glow-on-hover {
-    width: 35px; height: 35px; border-radius: 10px; border: none; background: #111; color: #fff; margin-left: 10px; cursor: pointer;
+    width: 35px; height: 35px; 
+    border-radius: 10px; border: none; 
+    background: #111; color: #fff; 
+    margin-left: 5px; cursor: pointer;
+    display: flex; justify-content: center; align-items: center;
 }
 .glow-on-hover:hover { background: #333; box-shadow: 0 0 10px blue; }
+
+/* Canvas Adjustment */
+#canvasOne {
+    position: absolute;
+    z-index: -1; /* Puts stars behind the hood */
+}

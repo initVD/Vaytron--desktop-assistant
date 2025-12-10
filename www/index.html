@@ -18,13 +18,13 @@
         <button id="start-btn" hidden>INITIALIZE</button>
     </div>
 
-    <div class="container" id="main-interface" hidden>
-        <section id="Oval" class="mb-4">
-            <div class="row">
-                <div class="col-md-1"></div>
-                <div class="col-md-10">
-                    <div class="d-flex justify-content-center align-items-center" style="height: 80vh;">
-                        <canvas id="canvasOne" width="700" height="420" style="position: absolute"></canvas>
+    <div class="container-fluid" id="main-interface" hidden>
+        
+        <section id="Oval">
+            <div class="row h-100"> <div class="col-md-12 d-flex flex-column justify-content-center align-items-center" style="height: 100vh;">
+                    
+                    <div class="d-flex justify-content-center align-items-center" style="position: relative; margin-bottom: 20px;">
+                        <canvas id="canvasOne" width="600" height="300"></canvas>
                         <div id="jarvisHood">
                             <div class="square">
                                 <span class="circle"></span>
@@ -33,38 +33,30 @@
                             </div>
                         </div>
                     </div>
-                    <h5 class="text-light text text-center">Ask me Anything...</h5>
+
+                    <h5 class="text-light text text-center mb-4">Ask me Anything...</h5>
                     
-                    <div class="col-md-12 mt-4 pt-4">
-                        <div class="text-center">
-                            <div id="TextInput" class="d-flex">
-                                <input type="text" class="input-field" id="chatbox" placeholder="what's on your mind?">
-                                <button id="SendBtn" class="glow-on-hover"><i class="bi bi-send"></i></button>
-                                <button id="MicBtn" class="glow-on-hover"><i class="bi bi-mic"></i></button>
-                                <button id="ChatBtn" class="glow-on-hover"><i class="bi bi-chat-dots"></i></button>
-                                <button id="SettingsBtn" class="glow-on-hover"><i class="bi bi-gear"></i></button>
-                            </div>
+                    <div class="w-100 d-flex justify-content-center">
+                        <div id="TextInput">
+                            <input type="text" class="input-field" id="chatbox" placeholder="Type here...">
+                            <button id="SendBtn" class="glow-on-hover"><i class="bi bi-send"></i></button>
+                            <button id="MicBtn" class="glow-on-hover"><i class="bi bi-mic"></i></button>
+                            <button id="ChatBtn" class="glow-on-hover"><i class="bi bi-chat-dots"></i></button>
+                            <button id="SettingsBtn" class="glow-on-hover"><i class="bi bi-gear"></i></button>
                         </div>
                     </div>
+
                 </div>
-                <div class="col-md-1"></div>
             </div>
         </section>
 
-        <section id="SiriWave" class="mb-4" hidden>
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-                            <div>
-                                <p class="text-light mb-4 text-center siri-message" style="font-size: 28px;">Hello</p>
-                                <div id="siri-container"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <section id="SiriWave" hidden>
+            <div class="d-flex flex-column justify-content-center align-items-center" style="height: 100vh;">
+                <p class="text-light mb-4 text-center siri-message" style="font-size: 28px;">Hello</p>
+                <div id="siri-container"></div>
             </div>
         </section>
+
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
