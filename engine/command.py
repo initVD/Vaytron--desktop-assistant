@@ -38,7 +38,7 @@ def chat(query):
 @eel.expose
 def allCommands():
     try:
-        # Greeting handled by main.js, but we start loop here
+        # Greeting command handled by main.js, but we start loop here
         while True:
             query = takecommand()
             
