@@ -6,7 +6,7 @@ from engine.voice import speak_realistic
 
 def speak(text):
     eel.DisplayMessage(text)
-    eel.receiverText(text)
+    # eel.receiverText(text) # Commented out to prevent JS errors if not defined
     speak_realistic(text)
 
 def takecommand():
@@ -16,71 +16,46 @@ def takecommand():
         r.pause_threshold = 0.5 
         r.adjust_for_ambient_noise(source)
         try:
-            # Listen for max 10 seconds, timeout if silence
             audio = r.listen(source, 10, 6)
             eel.DisplayMessage("recognizing....")
             query = r.recognize_google(audio, language='en-in')
             eel.DisplayMessage(query)
-        except Exception as e:
+        except:
             return ""
     return query.lower()
 
 @eel.expose
 def chat(query):
-    query = query.lower()
-    # Check for text-based stop commands
-    if query in ["stop", "exit", "quit", "bye"]:
-        speak("Going to sleep, sir.")
-        eel.ShowHood()
-        return
+    # This handles TEXT input from the chatbox
+    if not query: return
     process_command(query)
 
 @eel.expose
 def allCommands():
+    # This handles VOICE input loop
     try:
-        # Greeting command handled by main.js, but we start loop here
         while True:
             query = takecommand()
-            
-            if query == "":
-                continue
-
-            # Check for voice-based stop commands
-            if "stop" in query or "exit" in query or "quit" in query:
-                speak("Going to sleep, sir.")
+            if not query: continue
+            if "stop" in query or "exit" in query:
+                speak("Goodbye.")
                 eel.ShowHood()
                 break
-
-            eel.DisplayMessage("Processing...")
             process_command(query)
-            
-            # Tiny sleep to ensure audio doesn't overlap
-            time.sleep(1) 
-            eel.DisplayMessage("Listening again...")
-            
-    except Exception as e:
-        print(f"Error: {e}")
+            time.sleep(1)
+    except:
         eel.ShowHood()
 
 def process_command(query):
-    from engine.features import openCommand, setVolume, setBrightness, sendWhatsApp, chatWithBot
+    from engine.features import (openCommand, system_stats, check_password_safety, 
+                                 research_topic, open_social_media, chatWithBot)
     
     query = query.lower()
-    # Split multi-commands (e.g., "Open google and youtube")
-    commands = re.split(r'\s+(?:and|also|then)\s+', query)
+    print(f"Processing: {query}") # Debug print
     
-    for command in commands:
-        if not command.strip(): continue
-        # Ignoring stop words if they appear in middle of sentence
-        if command in ["stop", "exit", "quit"]: continue
-
-        if "open" in command:
-            openCommand(command)
-        elif "volume" in command:
-            setVolume(command)
-        elif "brightness" in command:
-            setBrightness(command)
-        elif "send message" in command or "whatsapp" in command:
-            sendWhatsApp(command)
-        else:
-            chatWithBot(command)
+    if "system status" in query or "battery" in query: system_stats()
+    elif "check password" in query: check_password_safety(query.replace("check password", "").strip())
+    elif "research" in query: research_topic(query.replace("research", "").strip())
+    elif "open twitter" in query: open_social_media("twitter")
+    elif "open" in query: openCommand(query)
+    else: chatWithBot(query)

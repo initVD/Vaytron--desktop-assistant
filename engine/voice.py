@@ -2,69 +2,62 @@ import asyncio
 import edge_tts
 import pygame
 import os
+import pyttsx3 
 from langdetect import detect
 
-# Default English Voice
-DEFAULT_VOICE = "en-US-ChristopherNeural"
-
-# Language Map (Auto-switch voices)
-VOICE_MAP = {
-    'gu': "gu-IN-DhwaniNeural",   # Gujarati
-    'hi': "hi-IN-SwaraNeural",    # Hindi
-    'mr': "mr-IN-AarohiNeural",   # Marathi
-    'ta': "ta-IN-PallaviNeural",  # Tamil
-    'te': "te-IN-ShrutiNeural",
-    'kn': "kn-IN-SwaraNeural",    # Telugu
-}
-
-async def text_to_speech_edge(text):
-    # 1. Determine which voice to use
-    voice = DEFAULT_VOICE
+# 1. Setup Offline Engine First (Reliable Backup)
+def speak_offline(text):
     try:
-        # Detect language code (e.g., 'en', 'gu', 'hi')
-        lang_code = detect(text)
-        if lang_code in VOICE_MAP:
-            voice = VOICE_MAP[lang_code]
-            print(f"Detected {lang_code}: Switching voice to {voice}")
+        engine = pyttsx3.init()
+        voices = engine.getProperty('voices')
+        # Try to find a female voice, otherwise use default
+        engine.setProperty('voice', voices[1].id if len(voices) > 1 else voices[0].id)
+        engine.setProperty('rate', 170)
+        engine.say(text)
+        engine.runAndWait()
     except Exception as e:
-        print(f"Language detection failed, using default: {e}")
+        print(f"Offline TTS Error: {e}")
 
-    # 2. Generate Audio
-    communicate = edge_tts.Communicate(text, voice)
-    
-    # Define output file
-    output_file = "speech.mp3"
-    
-    # Remove old file if it exists to prevent permission errors
-    if os.path.exists(output_file):
-        try:
-            os.remove(output_file)
-        except PermissionError:
-            print("File is locked, skipping delete.")
-            return
+# 2. Setup Online Engine (Realistic)
+async def text_to_speech_edge(text):
+    OUTPUT_FILE = "speech.mp3"
+    voice = "en-US-ChristopherNeural" # Default
 
-    await communicate.save(output_file)
-
-    # 3. Play Audio
+    # Auto-detect language
     try:
+        lang = detect(text)
+        if lang == 'hi': voice = "hi-IN-SwaraNeural"
+        elif lang == 'gu': voice = "gu-IN-DhwaniNeural"
+    except:
+        pass
+
+    try:
+        # Create audio file
+        communicate = edge_tts.Communicate(text, voice)
+        await communicate.save(OUTPUT_FILE)
+
+        # Play audio file
         pygame.mixer.init()
-        pygame.mixer.music.load(output_file)
+        pygame.mixer.music.load(OUTPUT_FILE)
         pygame.mixer.music.play()
 
+        # Wait until audio is done
         while pygame.mixer.music.get_busy():
             pygame.time.Clock().tick(10)
-            
-    except Exception as e:
-        print(f"Error playing audio: {e}")
-    finally:
-        # Stop and Quit to release file lock
+
         pygame.mixer.music.stop()
         pygame.mixer.quit()
         
-        # Cleanup
-        if os.path.exists(output_file):
+    except Exception as e:
+        # CRITICAL: If anything goes wrong, use Offline Voice
+        print(f"Online Voice Failed: {e}")
+        speak_offline(text)
+
+    finally:
+        # Clean up file
+        if os.path.exists(OUTPUT_FILE):
             try:
-                os.remove(output_file)
+                os.remove(OUTPUT_FILE)
             except:
                 pass
 
@@ -72,4 +65,4 @@ def speak_realistic(text):
     try:
         asyncio.run(text_to_speech_edge(text))
     except Exception as e:
-        print(f"Error in TTS: {e}")
+        speak_offline(text)
