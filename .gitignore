@@ -1,3 +1,2 @@
 /envjarvis
-/jarvis/engine/check_models.py
-/jarvis/engine/config.py
+engine/config.py
