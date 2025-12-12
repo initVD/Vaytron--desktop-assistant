@@ -1,69 +1,91 @@
 import speech_recognition as sr
 import eel
 import time
-import re
-from engine.voice import speak_realistic
-
-def speak(text):
-    eel.DisplayMessage(text)
-    # eel.receiverText(text) 
-    speak_realistic(text)
+# IMPORT SPEAK FROM HELPER TO FIX CRASH
+from engine.helper import speak 
 
 def takecommand():
     r = sr.Recognizer()
     with sr.Microphone() as source:
-        eel.DisplayMessage("listening....")
-        r.pause_threshold = 0.5 
+        print('listening....')
+        eel.DisplayMessage('listening....')
+        r.pause_threshold = 1
         r.adjust_for_ambient_noise(source)
+        
         try:
             audio = r.listen(source, 10, 6)
-            eel.DisplayMessage("recognizing....")
+            print('recognizing')
+            eel.DisplayMessage('recognizing....')
             query = r.recognize_google(audio, language='en-in')
+            print(f"user said: {query}")
             eel.DisplayMessage(query)
-        except:
+            time.sleep(2)
+        except Exception as e:
             return ""
+    
     return query.lower()
 
 @eel.expose
-def chat(query):
-    if not query: return
-    process_command(query)
+def chat(message):
+    # This handles text sent from the UI Chatbox
+    process_command(message)
 
 @eel.expose
-def allCommands():
-    try:
-        while True:
-            query = takecommand()
-            if not query: continue
-            if "stop" in query or "exit" in query:
-                speak("Goodbye.")
-                eel.ShowHood()
-                break
-            process_command(query)
-            time.sleep(1)
-    except:
-        eel.ShowHood()
+def allCommands(message=1):
+    if message == 1:
+        query = takecommand()
+        eel.senderText(query)
+    else:
+        query = message
+        eel.senderText(query)
+    
+    process_command(query)
 
 def process_command(query):
-    # Import features
-    from engine.features import (openCommand, setVolume, setBrightness, sendWhatsApp, 
-                                 system_stats, check_password_safety, 
-                                 research_topic, open_social_media, chatWithBot)
+    try:
+        # Import features LOCALLY to avoid circular import errors
+        from engine.features import openCommand, PlayYoutube, findContact, whatsApp, makeCall, sendMessage, geminai
+        
+        query = str(query).lower()
+
+        if "open" in query:
+            openCommand(query)
+        elif "on youtube" in query:
+            PlayYoutube(query)
+        
+        elif "send message" in query or "phone call" in query or "video call" in query:
+            contact_no, name = findContact(query)
+            if(contact_no != 0):
+                speak("Which mode you want to use whatsapp or mobile")
+                preferance = takecommand()
+                print(preferance)
+
+                if "mobile" in preferance:
+                    if "send message" in query or "send sms" in query: 
+                        speak("what message to send")
+                        message = takecommand()
+                        sendMessage(message, contact_no, name)
+                    elif "phone call" in query:
+                        makeCall(name, contact_no)
+                    else:
+                        speak("please try again")
+                elif "whatsapp" in preferance:
+                    message = ""
+                    if "send message" in query:
+                        message = 'message'
+                        speak("what message to send")
+                        query = takecommand()
+                                        
+                    elif "phone call" in query:
+                        message = 'call'
+                    else:
+                        message = 'video call'
+                                        
+                    whatsApp(contact_no, query, message, name)
+
+        else:
+            geminai(query)
+    except Exception as e:
+        print(f"Error: {e}")
     
-    query = query.lower()
-    print(f"Processing: {query}")
-    
-    # --- Advanced Commands ---
-    if "system status" in query or "battery" in query: system_stats()
-    elif "check password" in query: check_password_safety(query.replace("check password", "").strip())
-    elif "research" in query: research_topic(query.replace("research", "").strip())
-    elif "open twitter" in query: open_social_media("twitter")
-    
-    # --- Basic Commands (Added these back!) ---
-    elif "open" in query: openCommand(query)
-    elif "volume" in query: setVolume(query)
-    elif "brightness" in query: setBrightness(query)
-    elif "send message" in query or "whatsapp" in query: sendWhatsApp(query)
-    
-    # --- Chat (AI) ---
-    else: chatWithBot(query)
+    eel.ShowHood()

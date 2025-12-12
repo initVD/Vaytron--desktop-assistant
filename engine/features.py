@@ -1,133 +1,278 @@
+import json
 import os
+from pipes import quote
 import re
+import sqlite3
+import struct
+import subprocess
+import time
+import webbrowser
+from playsound import playsound
 import eel
+import pyaudio
 import pyautogui
-import screen_brightness_control as sbc
-from AppOpener import open as appopen
-import pywhatkit
+# Fixed Imports
+from engine.helper import speak, extract_yt_term, markdown_to_text, remove_words
+from engine.config import ASSISTANT_NAME, LLM_KEY, PORCUPINE_KEY
+
+import pywhatkit as kit
+import pvporcupine
 import google.generativeai as genai
-import psutil
-import requests
-import hashlib
-from bs4 import BeautifulSoup
-from docx import Document
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from engine.config import ASSISTANT_NAME, GEMINI_API_KEY
+from hugchat import hugchat
 
-# Gemini Setup - USING STABLE 1.5 FLASH MODEL
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash') 
-chat_session = model.start_chat(history=[
-    {"role": "user", "parts": ["You are Vaytron. Answer short and concisely."]},
-    {"role": "model", "parts": ["Okay."]}
-])
+con = sqlite3.connect("jarvis.db")
+cursor = con.cursor()
 
-# --- HELPER: Safe Speak Function ---
-def speak(text):
-    from engine.command import speak as sp
-    sp(text)
-
-# --- FEATURES ---
-
+@eel.expose
+def playAssistantSound():
+    music_dir = "www\\assets\\audio\\start_sound.mp3"
+    try:
+        playsound(music_dir)
+    except:
+        pass
+    
 def openCommand(query):
-    query = query.lower().replace("open", "").replace("launch", "").strip()
-    if isinstance(ASSISTANT_NAME, list):
-        for name in ASSISTANT_NAME: query = query.replace(name.lower(), "")
-    else: query = query.replace(ASSISTANT_NAME.lower(), "")
-    
-    if query != "":
-        speak("Opening " + query)
-        try: appopen(query, match_closest=True, throw_error=True)
-        except: os.system('start ' + query)
+    query = query.replace(ASSISTANT_NAME, "")
+    query = query.replace("open", "")
+    query.lower()
 
-def setVolume(command):
-    from engine.command import speak
-    if "up" in command or "increase" in command:
-        pyautogui.press("volumeup")
-        speak("Volume increased")
-    elif "down" in command or "decrease" in command:
-        pyautogui.press("volumedown")
-        speak("Volume decreased")
-    elif "mute" in command:
-        pyautogui.press("volumemute")
-        speak("System muted")
+    app_name = query.strip()
 
-def setBrightness(command):
-    from engine.command import speak
-    current = sbc.get_brightness()
-    if not current: current = [50]
-    
-    if "up" in command or "increase" in command:
-        sbc.set_brightness(min(current[0] + 10, 100))
-        speak("Brightness increased")
-    elif "down" in command or "decrease" in command:
-        sbc.set_brightness(max(current[0] - 10, 0))
-        speak("Brightness decreased")
+    if app_name != "":
+        try:
+            cursor.execute('SELECT path FROM sys_command WHERE name IN (?)', (app_name,))
+            results = cursor.fetchall()
 
-def sendWhatsApp(query):
-    from engine.command import speak
-    contacts = {"mom": "+910000000000", "dad": "+910000000000"} 
-    for name, number in contacts.items():
-        if name in query:
-            msg = query.replace("send message to", "").replace(name, "").replace("saying", "").strip()
-            speak(f"Sending message to {name}")
-            pywhatkit.sendwhatmsg_instantly(number, msg, wait_time=10)
-            return
-    speak("I couldn't find that contact.")
+            if len(results) != 0:
+                speak("Opening "+query)
+                os.startfile(results[0][0])
+            elif len(results) == 0: 
+                cursor.execute('SELECT url FROM web_command WHERE name IN (?)', (app_name,))
+                results = cursor.fetchall()
+                if len(results) != 0:
+                    speak("Opening "+query)
+                    webbrowser.open(results[0][0])
+                else:
+                    speak("Opening "+query)
+                    try:
+                        os.system('start '+query)
+                    except:
+                        speak("not found")
+        except:
+            speak("some thing went wrong")
 
-def system_stats():
-    cpu = psutil.cpu_percent()
-    battery = psutil.sensors_battery()
-    msg = f"CPU is at {cpu} percent."
-    if battery: msg += f" Battery is at {battery.percent} percent."
-    speak(msg)
+def PlayYoutube(query):
+    search_term = extract_yt_term(query)
+    speak("Playing "+search_term+" on YouTube")
+    kit.playonyt(search_term)
 
-def check_password_safety(password):
-    sha1 = hashlib.sha1(password.encode('utf-8')).hexdigest().upper()
+
+def hotword():
+    porcupine=None
+    paud=None
+    audio_stream=None
     try:
-        res = requests.get('https://api.pwnedpasswords.com/range/' + sha1[:5], timeout=5)
-        if sha1[5:] in res.text: speak("Alert! Password found in data breaches.")
-        else: speak("Password seems safe.")
-    except: speak("Could not check password database.")
-
-def research_topic(topic):
-    speak(f"Researching {topic}...")
-    try:
-        res = requests.get(f"https://www.google.com/search?q={topic}", headers={'User-Agent': 'Mozilla/5.0'})
-        soup = BeautifulSoup(res.text, 'html.parser')
-        results = [r.get_text() for r in soup.find_all('div', class_='BNeawe s3v9rd AP7Wnd')[:5]]
+        # Fixed: Added Access Key
+        porcupine=pvporcupine.create(keywords=["jarvis","alexa"], access_key=PORCUPINE_KEY) 
+        paud=pyaudio.PyAudio()
+        audio_stream=paud.open(rate=porcupine.sample_rate,channels=1,format=pyaudio.paInt16,input=True,frames_per_buffer=porcupine.frame_length)
         
-        doc = Document()
-        doc.add_heading(topic, 0)
-        for line in results: doc.add_paragraph(line)
-        filename = f"{topic.replace(' ', '_')}.docx"
-        doc.save(filename)
-        speak("Report saved.")
-        os.system(f"start {filename}")
-    except: speak("Research failed.")
+        while True:
+            keyword=audio_stream.read(porcupine.frame_length)
+            keyword=struct.unpack_from("h"*porcupine.frame_length,keyword)
+            keyword_index=porcupine.process(keyword)
 
-def open_social_media(platform):
-    speak(f"Opening {platform}...")
-    options = webdriver.ChromeOptions()
-    options.add_experimental_option("detach", True)
-    try:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        driver.get(f"https://{platform}.com")
-    except: speak("Could not open browser.")
-
-# --- CHAT LOGIC (ONLINE ONLY) ---
-def chatWithBot(query):
-    eel.DisplayMessage("Thinking...")
-    
-    try:
-        response = chat_session.send_message(query)
-        speak(response.text.replace("*", ""))
+            if keyword_index>=0:
+                print("hotword detected")
+                import pyautogui as autogui
+                autogui.keyDown("win")
+                autogui.press("j")
+                time.sleep(2)
+                autogui.keyUp("win")
+                
     except Exception as e:
-        err_msg = str(e)
-        if "429" in err_msg:
-            speak("I am tired. My API quota is full. Please wait a minute.")
-        else:
-            print(f"Error: {e}")
-            speak("I am unable to connect to the internet right now.")
+        print(f"Hotword Error: {e}")
+        if porcupine is not None:
+            porcupine.delete()
+        if audio_stream is not None:
+            audio_stream.close()
+        if paud is not None:
+            paud.terminate()
+
+def findContact(query):
+    words_to_remove = [ASSISTANT_NAME, 'make', 'a', 'to', 'phone', 'call', 'send', 'message', 'wahtsapp', 'video']
+    query = remove_words(query, words_to_remove)
+    try:
+        query = query.strip().lower()
+        cursor.execute("SELECT mobile_no FROM contacts WHERE LOWER(name) LIKE ? OR LOWER(name) LIKE ?", ('%' + query + '%', query + '%'))
+        results = cursor.fetchall()
+        print(results[0][0])
+        mobile_number_str = str(results[0][0])
+        if not mobile_number_str.startswith('+91'):
+            mobile_number_str = '+91' + mobile_number_str
+        return mobile_number_str, query
+    except:
+        speak('not exist in contacts')
+        return 0, 0
+    
+def whatsApp(mobile_no, message, flag, name):
+    if flag == 'message':
+        target_tab = 12
+        jarvis_message = "message send successfully to "+name
+    elif flag == 'call':
+        target_tab = 7
+        message = ''
+        jarvis_message = "calling to "+name
+    else:
+        target_tab = 6
+        message = ''
+        jarvis_message = "staring video call with "+name
+
+    encoded_message = quote(message)
+    whatsapp_url = f"whatsapp://send?phone={mobile_no}&text={encoded_message}"
+    full_command = f'start "" "{whatsapp_url}"'
+    subprocess.run(full_command, shell=True)
+    time.sleep(5)
+    subprocess.run(full_command, shell=True)
+    
+    pyautogui.hotkey('ctrl', 'f')
+    for i in range(1, target_tab):
+        pyautogui.hotkey('tab')
+    pyautogui.hotkey('enter')
+    speak(jarvis_message)
+
+def chatBot(query):
+    user_input = query.lower()
+    chatbot = hugchat.ChatBot(cookie_path="engine\cookies.json")
+    id = chatbot.new_conversation()
+    chatbot.change_conversation(id)
+    response =  chatbot.chat(user_input)
+    print(response)
+    speak(response)
+    return response
+
+def makeCall(name, mobileNo):
+    mobileNo =mobileNo.replace(" ", "")
+    speak("Calling "+name)
+    command = 'adb shell am start -a android.intent.action.CALL -d tel:'+mobileNo
+    os.system(command)
+
+def sendMessage(message, mobileNo, name):
+    from engine.helper import replace_spaces_with_percent_s, goback, keyEvent, tapEvents, adbInput
+    message = replace_spaces_with_percent_s(message)
+    mobileNo = replace_spaces_with_percent_s(mobileNo)
+    speak("sending message")
+    goback(4)
+    time.sleep(1)
+    keyEvent(3)
+    tapEvents(136, 2220)
+    tapEvents(819, 2192)
+    adbInput(mobileNo)
+    tapEvents(601, 574)
+    tapEvents(390, 2270)
+    adbInput(message)
+    tapEvents(957, 1397)
+    speak("message send successfully to "+name)
+
+def geminai(query):
+    try:
+        query = query.replace(ASSISTANT_NAME, "")
+        query = query.replace("search", "")
+        genai.configure(api_key=LLM_KEY)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(query)
+        filter_text = markdown_to_text(response.text)
+        speak(filter_text)
+    except Exception as e:
+        print("Error:", e)
+
+# --- Keep your existing Database Expose functions below (assistantName, personalInfo, etc.) ---
+@eel.expose
+def assistantName():
+    return ASSISTANT_NAME
+
+@eel.expose
+def personalInfo():
+    try:
+        cursor.execute("SELECT * FROM info")
+        results = cursor.fetchall()
+        jsonArr = json.dumps(results[0])
+        eel.getData(jsonArr)
+        return 1    
+    except:
+        print("no data")
+
+@eel.expose
+def updatePersonalInfo(name, designation, mobileno, email, city):
+    cursor.execute("SELECT COUNT(*) FROM info")
+    count = cursor.fetchone()[0]
+    if count > 0:
+        cursor.execute(
+            '''UPDATE info SET name=?, designation=?, mobileno=?, email=?, city=?''',
+            (name, designation, mobileno, email, city)
+        )
+    else:
+        cursor.execute(
+            '''INSERT INTO info (name, designation, mobileno, email, city) VALUES (?, ?, ?, ?, ?)''',
+            (name, designation, mobileno, email, city)
+        )
+    con.commit()
+    personalInfo()
+    return 1
+
+@eel.expose
+def displaySysCommand():
+    cursor.execute("SELECT * FROM sys_command")
+    results = cursor.fetchall()
+    jsonArr = json.dumps(results)
+    eel.displaySysCommand(jsonArr)
+    return 1
+
+@eel.expose
+def deleteSysCommand(id):
+    cursor.execute("DELETE FROM sys_command WHERE id = ?", (id,))
+    con.commit()
+
+@eel.expose
+def addSysCommand(key, value):
+    cursor.execute(
+        '''INSERT INTO sys_command VALUES (?, ?, ?)''', (None,key, value))
+    con.commit()
+
+@eel.expose
+def displayWebCommand():
+    cursor.execute("SELECT * FROM web_command")
+    results = cursor.fetchall()
+    jsonArr = json.dumps(results)
+    eel.displayWebCommand(jsonArr)
+    return 1
+
+@eel.expose
+def addWebCommand(key, value):
+    cursor.execute(
+        '''INSERT INTO web_command VALUES (?, ?, ?)''', (None, key, value))
+    con.commit()
+
+@eel.expose
+def deleteWebCommand(id):
+    cursor.execute("DELETE FROM web_command WHERE Id = ?", (id,))
+    con.commit()
+
+@eel.expose
+def displayPhoneBookCommand():
+    cursor.execute("SELECT * FROM contacts")
+    results = cursor.fetchall()
+    jsonArr = json.dumps(results)
+    eel.displayPhoneBookCommand(jsonArr)
+    return 1
+
+@eel.expose
+def deletePhoneBookCommand(id):
+    cursor.execute("DELETE FROM contacts WHERE Id = ?", (id,))
+    con.commit()
+
+@eel.expose
+def InsertContacts(Name, MobileNo, Email, City):
+    cursor.execute(
+        '''INSERT INTO contacts VALUES (?, ?, ?, ?, ?)''', (None,Name, MobileNo, Email, City))
+    con.commit()
