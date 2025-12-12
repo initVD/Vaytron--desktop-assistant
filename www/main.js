@@ -5,15 +5,16 @@ $(document).ready(function() {
     const mainInterface = document.getElementById("main-interface");
 
     if (video) {
-        // Start muted to ensure autoplay works
         video.muted = true; 
         video.play().then(() => {
-            // Unmute after a small delay
-            setTimeout(() => { video.muted = false; }, 500);
+            setTimeout(() => {
+                video.muted = false;
+            }, 500);
         }).catch((error) => {
             $("#start-btn").attr("hidden", false);
             $("#start-btn").click(() => {
-                video.muted = false; video.play();
+                video.muted = false;
+                video.play();
                 $("#start-btn").attr("hidden", true);
             });
         });
@@ -22,14 +23,22 @@ $(document).ready(function() {
             $(videoContainer).fadeOut(1000, function() {
                 $(mainInterface).attr("hidden", false);
                 $(mainInterface).css("opacity", 1);
-                // Trigger Greeting
                 eel.chat("Introduce yourself"); 
             });
         });
     }
 
-    $('.text').textillate({ loop: true, sync: true, in: { effect: 'bounceIn' }, out: { effect: 'bounceOut' } });
-    $('.siri-message').textillate({ loop: true, sync: true, in: { effect: 'fadeInUp', sync: true }, out: { effect: 'fadeInOut', sync: true } });
+    $('.text').textillate({
+        loop: true, sync: true,
+        in: { effect: 'bounceIn' },
+        out: { effect: 'bounceOut' },
+    });
+
+    $('.siri-message').textillate({
+        loop: true, sync: true,
+        in: { effect: 'fadeInUp', sync: true },
+        out: { effect: 'fadeInOut', sync: true },
+    });
 
     var siriWave = new SiriWave({
         container: document.getElementById("siri-container"),
@@ -55,8 +64,13 @@ $(document).ready(function() {
     }
 
     $("#chatbox").keypress(function(e) {
-        if (e.which == 13) { sendTextCommand(); }
+        if (e.which == 13) {
+            sendTextCommand();
+        }
     });
 
-    $("#SendBtn").click(function() { sendTextCommand(); });
+    $("#SendBtn").click(function() {
+        sendTextCommand();
+    });
+
 });

@@ -6,7 +6,7 @@ from engine.voice import speak_realistic
 
 def speak(text):
     eel.DisplayMessage(text)
-    # eel.receiverText(text) # Commented out to prevent JS errors if not defined
+    # eel.receiverText(text) 
     speak_realistic(text)
 
 def takecommand():
@@ -26,13 +26,11 @@ def takecommand():
 
 @eel.expose
 def chat(query):
-    # This handles TEXT input from the chatbox
     if not query: return
     process_command(query)
 
 @eel.expose
 def allCommands():
-    # This handles VOICE input loop
     try:
         while True:
             query = takecommand()
@@ -47,15 +45,25 @@ def allCommands():
         eel.ShowHood()
 
 def process_command(query):
-    from engine.features import (openCommand, system_stats, check_password_safety, 
+    # Import features
+    from engine.features import (openCommand, setVolume, setBrightness, sendWhatsApp, 
+                                 system_stats, check_password_safety, 
                                  research_topic, open_social_media, chatWithBot)
     
     query = query.lower()
-    print(f"Processing: {query}") # Debug print
+    print(f"Processing: {query}")
     
+    # --- Advanced Commands ---
     if "system status" in query or "battery" in query: system_stats()
     elif "check password" in query: check_password_safety(query.replace("check password", "").strip())
     elif "research" in query: research_topic(query.replace("research", "").strip())
     elif "open twitter" in query: open_social_media("twitter")
+    
+    # --- Basic Commands (Added these back!) ---
     elif "open" in query: openCommand(query)
+    elif "volume" in query: setVolume(query)
+    elif "brightness" in query: setBrightness(query)
+    elif "send message" in query or "whatsapp" in query: sendWhatsApp(query)
+    
+    # --- Chat (AI) ---
     else: chatWithBot(query)
